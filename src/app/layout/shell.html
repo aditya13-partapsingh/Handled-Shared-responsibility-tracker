@@ -1,0 +1,156 @@
+<div class="shell">
+  <!-- Desktop sidebar -->
+  <aside class="sidebar">
+    <a class="brand" routerLink="/home">
+      <span class="brand-mark"><app-icon name="check" [size]="18" [stroke]="3" /></span>
+      <span class="brand-name">Handled</span>
+    </a>
+
+    @if (group.activeGroup(); as g) {
+      <div class="group-switch">
+        <div class="group-current">
+          <span class="cat-circle sm" style="--cat: var(--primary)"><app-icon [name]="groupIcon(g.type)" [size]="16" /></span>
+          <div class="grow">
+            <div class="strong truncate">{{ g.name }}</div>
+            <div class="tiny faint">{{ groupTypeLabel(g.type) }} · {{ group.members().length }} members</div>
+          </div>
+        </div>
+        @if (group.myGroups().length > 1) {
+          <div class="group-list">
+            @for (other of group.myGroups(); track other.id) {
+              @if (other.id !== g.id) {
+                <button class="group-item" (click)="switchGroup(other.id)">
+                  <app-icon [name]="groupIcon(other.type)" [size]="14" />
+                  <span class="truncate">{{ other.name }}</span>
+                </button>
+              }
+            }
+          </div>
+        }
+        <button class="group-item add" (click)="newGroup()"><app-icon name="plus" [size]="14" /> New group</button>
+      </div>
+    }
+
+    <nav class="nav">
+      @for (item of nav; track item.path) {
+        <a class="nav-item" [routerLink]="item.path" routerLinkActive="active">
+          <span class="nav-icon">
+            <app-icon [name]="item.icon" />
+            @if (item.path === '/activity' && tasks.reminderCount() > 0) {
+              <span class="notif-badge">{{ tasks.reminderCount() }}</span>
+            }
+          </span>
+          {{ item.label }}
+        </a>
+      }
+    </nav>
+
+    <button class="btn btn-primary btn-block new-task" (click)="overlay.newTask()">
+      <app-icon name="plus" /> New task
+    </button>
+
+    <div class="sidebar-foot">
+      @if (group.me(); as me) {
+        <a class="me" routerLink="/settings">
+          <app-avatar [name]="me.name" [colorIndex]="me.colorIndex" [size]="38" status="online" />
+          <div class="grow">
+            <div class="strong small truncate">{{ me.name }}</div>
+            <div class="tiny faint">{{ me.role === 'admin' ? 'Admin' : 'Member' }}</div>
+          </div>
+        </a>
+      }
+      <button class="btn btn-ghost btn-icon" (click)="theme.toggle()" title="Toggle theme">
+        <app-icon [name]="theme.resolved() === 'dark' ? 'sun' : 'moon'" />
+      </button>
+      <button class="btn btn-ghost btn-icon" (click)="signOut()" title="Sign out">
+        <app-icon name="log-out" />
+      </button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <router-outlet />
+  </main>
+
+  <!-- Mobile bottom bar -->
+  <nav class="bottom-nav">
+    @for (item of mobileNav; track item.path) {
+      <a class="tab" [routerLink]="item.path" routerLinkActive="active">
+        <app-icon [name]="item.icon" [size]="22" />
+        <span>{{ item.label }}</span>
+      </a>
+    }
+    <button class="tab fab" (click)="overlay.newTask()" aria-label="New task">
+      <span class="fab-circle"><app-icon name="plus" [size]="24" [stroke]="2.5" /></span>
+    </button>
+    @for (item of mobileNavRight; track item.path) {
+      <a class="tab" [routerLink]="item.path" routerLinkActive="active">
+        <app-icon [name]="item.icon" [size]="22" />
+        <span>{{ item.label }}</span>
+      </a>
+    }
+    <button class="tab" [class.active]="overlay.menuOpen()" (click)="overlay.menuOpen.set(true)">
+      <span class="tab-icon">
+        <app-icon name="menu" [size]="22" />
+        @if (tasks.reminderCount() > 0) {
+          <span class="notif-badge">{{ tasks.reminderCount() }}</span>
+        }
+      </span>
+      <span>More</span>
+    </button>
+  </nav>
+</div>
+
+<!-- Mobile "More" menu -->
+@if (overlay.menuOpen()) {
+  <app-sheet title="Menu" [small]="true" (closed)="overlay.menuOpen.set(false)">
+    <div class="list">
+      @for (item of moreNav; track item.path) {
+        <button class="list-row clickable" (click)="goTo(item.path)">
+          <span class="cat-circle sm" style="--cat: var(--primary)"><app-icon [name]="item.icon" [size]="18" /></span>
+          <span class="list-title grow">{{ item.label }}</span>
+          @if (item.path === '/activity' && tasks.reminderCount() > 0) {
+            <span class="badge badge-danger">{{ tasks.reminderCount() }}</span>
+          }
+          <app-icon name="chevron-right" class="faint" />
+        </button>
+      }
+    </div>
+
+    <div class="card-title mt mb">Your groups</div>
+    <div class="list">
+      @for (g of group.myGroups(); track g.id) {
+        <button class="list-row clickable" (click)="switchGroup(g.id)">
+          <span class="cat-circle sm" style="--cat: var(--purple)"><app-icon [name]="groupIcon(g.type)" [size]="18" /></span>
+          <div class="grow">
+            <div class="list-title">{{ g.name }}</div>
+            <div class="list-sub">{{ groupTypeLabel(g.type) }}</div>
+          </div>
+          @if (g.id === group.activeGroup()?.id) {
+            <span class="badge badge-primary">Active</span>
+          }
+        </button>
+      }
+      <button class="list-row clickable" (click)="newGroup()">
+        <span class="cat-circle sm" style="--cat: var(--success)"><app-icon name="plus" [size]="18" /></span>
+        <span class="list-title grow">Create or join a group</span>
+      </button>
+    </div>
+
+    <div class="row mt">
+      <button class="btn btn-outline grow" (click)="theme.toggle()">
+        <app-icon [name]="theme.resolved() === 'dark' ? 'sun' : 'moon'" [size]="18" />
+        {{ theme.resolved() === 'dark' ? 'Light mode' : 'Dark mode' }}
+      </button>
+      <button class="btn btn-danger grow" (click)="signOut()"><app-icon name="log-out" [size]="18" /> Sign out</button>
+    </div>
+  </app-sheet>
+}
+
+@if (overlay.taskEditor()) {
+  <app-task-editor />
+}
+@if (overlay.assignTaskId()) {
+  <app-assign-sheet />
+}
+<app-confirm-dialog />

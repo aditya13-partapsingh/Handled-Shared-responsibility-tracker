@@ -1,0 +1,152 @@
+<div class="page">
+  <app-hero title="Settings" eyebrow="Profile, group & data" [showAdd]="false">
+    @if (auth.account(); as acc) {
+      <div class="row gap-lg">
+        <app-avatar [name]="acc.name" [colorIndex]="acc.colorIndex" [size]="60" [ring]="true" />
+        <div>
+          <div class="strong" style="font-size: 1.05rem">{{ acc.name }}</div>
+          <div class="small" style="opacity: 0.85">{{ acc.email }}</div>
+          <div class="tiny mt-sm" style="opacity: 0.8">{{ stats().groups }} group{{ stats().groups === 1 ? '' : 's' }} · {{ stats().members }} members here · {{ stats().tasks }} tasks</div>
+        </div>
+      </div>
+    }
+  </app-hero>
+
+  <div class="page-grid">
+    <div class="stack gap-lg">
+      <!-- Profile -->
+      <section class="card card-pad">
+        <div class="card-title mb">Profile</div>
+        <form class="stack" (submit)="saveProfile($event)">
+          <div class="field">
+            <label class="label" for="st-name">Display name</label>
+            <div class="row">
+              <input id="st-name" class="input" [(ngModel)]="profileName" name="name" />
+              <button class="btn btn-primary" type="submit" [disabled]="!profileName.trim()">Save</button>
+            </div>
+          </div>
+          <div class="field">
+            <span class="label">Avatar color</span>
+            <div class="row row-wrap gap-sm">
+              @for (c of palette; track c; let i = $index) {
+                <button type="button" class="swatch" [class.on]="auth.account()?.colorIndex === i" [style.background]="c" (click)="setColor(i)" [attr.aria-label]="'Color ' + (i + 1)"></button>
+              }
+            </div>
+          </div>
+        </form>
+        <div class="divider"></div>
+        <form class="stack" (submit)="changePassword($event)">
+          <div class="card-title">Change password</div>
+          @if (pwError()) {
+            <div class="form-error">{{ pwError() }}</div>
+          }
+          <div class="form-grid">
+            <div class="field">
+              <label class="label" for="st-cur">Current</label>
+              <input id="st-cur" class="input" type="password" [(ngModel)]="currentPw" name="current" autocomplete="current-password" />
+            </div>
+            <div class="field">
+              <label class="label" for="st-new">New</label>
+              <input id="st-new" class="input" type="password" [(ngModel)]="newPw" name="new" autocomplete="new-password" />
+            </div>
+          </div>
+          <div><button class="btn btn-outline btn-sm" type="submit" [disabled]="!currentPw || !newPw">Update password</button></div>
+        </form>
+      </section>
+
+      <!-- Group -->
+      @if (group.activeGroup(); as g) {
+        <section class="card card-pad">
+          <div class="section-head">
+            <div class="card-title">This group</div>
+            <a routerLink="/onboarding" class="small">Create or join another</a>
+          </div>
+          <form class="stack" (submit)="saveGroup($event)">
+            <div class="field">
+              <label class="label" for="st-gname">Name</label>
+              <input id="st-gname" class="input" [(ngModel)]="groupName" name="groupName" [disabled]="!group.isAdmin()" />
+            </div>
+            <div class="field">
+              <span class="label">Type</span>
+              <div class="row row-wrap gap-sm">
+                @for (t of groupTypes; track t.value) {
+                  <button type="button" class="chip" [class.active]="groupType === t.value" (click)="groupType = t.value" [disabled]="!group.isAdmin()">
+                    <app-icon [name]="t.icon" [size]="14" /> {{ t.label }}
+                  </button>
+                }
+              </div>
+            </div>
+            @if (group.isAdmin()) {
+              <div><button class="btn btn-primary btn-sm" type="submit" [disabled]="!groupName.trim()">Save group</button></div>
+            } @else {
+              <div class="hint">Only admins can rename the group.</div>
+            }
+          </form>
+
+          <div class="divider"></div>
+          <div class="card-title mb">Invite people</div>
+          <div class="invite">
+            <div class="grow">
+              <div class="code">{{ g.inviteCode }}</div>
+              <div class="tiny faint">Anyone who signs up on this device can join with this code.</div>
+            </div>
+            <button class="btn btn-soft btn-sm" (click)="copyCode()"><app-icon name="copy" [size]="15" /> Copy</button>
+            @if (group.isAdmin()) {
+              <button class="btn btn-ghost btn-icon btn-sm" (click)="regenerate()" title="Generate a new code"><app-icon name="refresh-cw" [size]="15" /></button>
+            }
+          </div>
+
+          <div class="divider"></div>
+          <div class="row row-wrap">
+            <button class="btn btn-outline btn-sm" (click)="leaveGroup()"><app-icon name="log-out" [size]="15" /> Leave group</button>
+            @if (group.isAdmin()) {
+              <button class="btn btn-danger btn-sm" (click)="deleteGroup()"><app-icon name="trash" [size]="15" /> Delete group</button>
+            }
+          </div>
+        </section>
+      }
+    </div>
+
+    <div class="stack gap-lg">
+      <!-- Appearance -->
+      <section class="card card-pad">
+        <div class="card-title mb">Appearance</div>
+        <div class="themes">
+          @for (t of themes; track t.value) {
+            <button class="option-card" [class.selected]="theme.preference() === t.value" (click)="theme.set(t.value)">
+              <span class="cat-circle sm" style="--cat: var(--primary)"><app-icon [name]="t.icon" [size]="16" /></span>
+              <span class="option-title">{{ t.label }}</span>
+            </button>
+          }
+        </div>
+      </section>
+
+      <!-- Data -->
+      <section class="card card-pad">
+        <div class="card-title mb">Your data</div>
+        <p class="small muted mb">Handled has no server. Everything lives in this browser's storage – back it up or move it with a JSON file.</p>
+        @if (importError()) {
+          <div class="form-error mb">{{ importError() }}</div>
+        }
+        <div class="stack">
+          <button class="btn btn-outline" (click)="exportData()"><app-icon name="download" [size]="17" /> Export backup (.json)</button>
+          <label class="btn btn-outline">
+            <app-icon name="upload" [size]="17" /> Import backup
+            <input type="file" accept="application/json,.json" hidden (change)="importData($event)" />
+          </label>
+          <button class="btn btn-danger" (click)="resetDemo()"><app-icon name="refresh-cw" [size]="17" /> Reset to demo data</button>
+        </div>
+      </section>
+
+      <section class="card card-pad">
+        <div class="card-title mb">About</div>
+        <p class="small muted">
+          Handled makes sure shared responsibilities always have a clear owner, a deadline and a status —
+          and flags the ones nobody has picked up before they're missed.
+        </p>
+        <div class="tiny faint mt-sm">Frontend-only demo · Angular · v1.0</div>
+        <button class="btn btn-ghost btn-sm mt" (click)="signOut()"><app-icon name="log-out" [size]="15" /> Sign out</button>
+      </section>
+    </div>
+  </div>
+</div>

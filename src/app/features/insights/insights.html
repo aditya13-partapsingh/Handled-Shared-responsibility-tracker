@@ -1,0 +1,169 @@
+<div class="page">
+  <app-hero title="Insights" [eyebrow]="group.activeGroup()?.name ?? ''" [showAdd]="false">
+    <div class="stat-grid">
+      <app-stat-card label="Open tasks" [value]="summary().open" icon="tasks" link="/tasks" />
+      <app-stat-card label="No owner" [value]="summary().unowned" icon="help-circle" tone="danger" link="/tasks" [queryParams]="{ filter: 'unowned' }" />
+      <app-stat-card label="Overdue" [value]="summary().overdue" icon="alert-circle" tone="warning" link="/tasks" [queryParams]="{ filter: 'overdue' }" />
+      <app-stat-card label="On-time rate" [value]="summary().onTimeRate | percent" icon="target" tone="success" link="/tasks" [queryParams]="{ filter: 'done' }" />
+    </div>
+  </app-hero>
+
+  <div class="page-grid">
+    <div class="stack gap-lg">
+      <!-- Workload -->
+      <section class="card card-pad">
+        <div class="section-head">
+          <h2>Workload by person</h2>
+          @if (fairness() !== null) {
+            <span class="badge" [class.badge-success]="fairness()! >= 0.7" [class.badge-warning]="fairness()! < 0.7 && fairness()! >= 0.4" [class.badge-danger]="fairness()! < 0.4">
+              Balance {{ fairness() | percent }}
+            </span>
+          }
+        </div>
+        <p class="small faint mb">Weighted by priority: low 1 · medium 2 · high 3 · critical 5.</p>
+        <div class="stack gap-lg">
+          @for (s of insights.memberStats(); track s.member.id) {
+            <a class="wl" [routerLink]="['/members', s.member.id]">
+              <app-avatar [name]="s.member.name" [colorIndex]="s.member.colorIndex" [size]="38" />
+              <div class="grow">
+                <div class="row between">
+                  <span class="strong small">{{ s.member.name }}</span>
+                  <span class="tiny faint">{{ s.open }} open · load {{ s.load }}</span>
+                </div>
+                <app-bar [value]="s.load / insights.maxLoad()" [color]="palette[s.member.colorIndex % 8]" />
+                <div class="tiny faint mt-sm">
+                  {{ s.completed }} completed · {{ s.late }} late
+                  @if (s.onTimeRate !== null) { · {{ s.onTimeRate | percent }} on time }
+                  @if (s.overdue) { · <span class="text-danger">{{ s.overdue }} overdue now</span> }
+                </div>
+              </div>
+            </a>
+          }
+        </div>
+      </section>
+
+      <!-- Rebalance -->
+      <section class="card card-pad">
+        <div class="section-head">
+          <h2><app-icon name="shuffle" [size]="18" class="text-primary" /> Share recurring work</h2>
+          @if (insights.rebalance().length > 0) {
+            <button class="btn btn-primary btn-sm" (click)="applyRebalance()"><app-icon name="check" [size]="15" /> Apply all</button>
+          }
+        </div>
+        @if (insights.rebalance().length > 0) {
+          <p class="small faint mb">Moving these recurring tasks would even out the load without touching one-off tasks.</p>
+          <div class="stack">
+            @for (m of insights.rebalance(); track m.task.id) {
+              <div class="move">
+                <div class="grow small">
+                  <a class="strong" [routerLink]="['/tasks', m.task.id]">{{ m.task.title }}</a>
+                  <div class="tiny faint">{{ m.task.recurrence.frequency }} · {{ m.task.priority }}</div>
+                </div>
+                <div class="row gap-sm">
+                  <app-avatar [name]="m.from.name" [colorIndex]="m.from.colorIndex" [size]="28" />
+                  <app-icon name="arrow-right" [size]="14" class="faint" />
+                  <app-avatar [name]="m.to.name" [colorIndex]="m.to.colorIndex" [size]="28" />
+                </div>
+                <button class="btn btn-soft btn-sm" (click)="tasks.assign(m.task.id, m.to.id, true)">Move</button>
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="row gap-lg">
+            <span class="cat-circle" style="--cat: var(--success)"><app-icon name="check" [size]="20" /></span>
+            <div class="small muted">Recurring responsibilities are already spread evenly. Nothing to move.</div>
+          </div>
+        }
+      </section>
+
+      <!-- Frequently missed -->
+      <section class="card card-pad">
+        <div class="section-head">
+          <h2><app-icon name="trending-down" [size]="18" class="text-warning" /> Frequently missed</h2>
+        </div>
+        @if (insights.frequentlyMissed().length > 0) {
+          <p class="small faint mb">Series that were late or skipped in at least 40% of their occurrences.</p>
+          <div class="stack gap-lg">
+            @for (m of insights.frequentlyMissed(); track m.task.seriesId) {
+              <div class="missed">
+                <div class="row between">
+                  <a class="strong" [routerLink]="['/tasks', m.task.id]">{{ m.task.title }}</a>
+                  <span class="badge badge-warning">{{ m.rate | percent }} missed</span>
+                </div>
+                <div class="tiny faint mt-sm">
+                  {{ m.task.lateCount }} late · {{ m.task.missedCount }} skipped · {{ m.task.completionCount }} done ·
+                  owner: {{ m.task.ownerId ? group.memberName(m.task.ownerId) : 'nobody' }}
+                </div>
+                <div class="tip mt-sm"><app-icon name="sparkles" [size]="14" /> {{ m.suggestion }}</div>
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="row gap-lg">
+            <span class="cat-circle" style="--cat: var(--success)"><app-icon name="award" [size]="20" /></span>
+            <div class="small muted">No task is being missed repeatedly. Keep it up.</div>
+          </div>
+        }
+      </section>
+    </div>
+
+    <div class="stack gap-lg">
+      <!-- Weekly completions -->
+      <section class="card card-pad">
+        <div class="section-head"><h2>Completed per week</h2></div>
+        <div class="chart">
+          @for (w of insights.weekly(); track w.weekStart) {
+            <div class="col" [title]="w.completed + ' completed, ' + w.late + ' late'">
+              <div class="bars">
+                <div class="b" [style.height.%]="(w.completed / maxWeekly()) * 100">
+                  @if (w.late) {
+                    <div class="late" [style.height.%]="(w.late / (w.completed || 1)) * 100"></div>
+                  }
+                </div>
+              </div>
+              <span class="tiny faint">{{ w.label }}</span>
+            </div>
+          }
+        </div>
+        <div class="legend tiny faint">
+          <span><i class="sw" style="background: var(--primary)"></i> On time</span>
+          <span><i class="sw" style="background: var(--warning)"></i> Late</span>
+        </div>
+      </section>
+
+      <!-- Category donut -->
+      <section class="card card-pad">
+        <div class="section-head"><h2>Open work by category</h2></div>
+        @if (insights.categoryBreakdown().length > 0) {
+          <div class="donut-wrap">
+            <div class="donut" [style.background]="donut()">
+              <div class="hole"><b>{{ summary().open }}</b><span class="tiny faint">open</span></div>
+            </div>
+            <div class="stack gap-sm grow">
+              @for (c of insights.categoryBreakdown(); track c.category) {
+                <a class="row small" routerLink="/tasks" [queryParams]="{ category: c.category }">
+                  <i class="sw" [style.background]="c.color"></i>
+                  <span class="grow">{{ c.label }}</span>
+                  <span class="faint">{{ c.count }} · {{ c.share | percent }}</span>
+                </a>
+              }
+            </div>
+          </div>
+        } @else {
+          <div class="small muted">No open tasks yet.</div>
+        }
+      </section>
+
+      <section class="card card-pad">
+        <div class="section-head"><h2>Recurring coverage</h2></div>
+        <div class="small muted">
+          {{ summary().recurring }} of {{ summary().open }} open tasks repeat on a schedule.
+          @if (summary().unowned > 0) {
+            <span class="text-danger strong">{{ summary().unowned }}</span> still need an owner.
+          }
+        </div>
+        <a class="btn btn-soft btn-sm mt" routerLink="/tasks" [queryParams]="{ filter: 'unowned' }">Review unowned tasks <app-icon name="arrow-right" [size]="15" /></a>
+      </section>
+    </div>
+  </div>
+</div>

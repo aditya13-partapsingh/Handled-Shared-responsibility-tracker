@@ -1,0 +1,169 @@
+<div class="page">
+  <app-hero [eyebrow]="greeting()" [title]="firstName()">
+    <p class="headline" [class.calm]="tasks.unownedImportant().length === 0 && tasks.overdue().length === 0">
+      @if (tasks.unownedImportant().length === 0 && tasks.overdue().length === 0) {
+        <app-icon name="check-circle" [size]="16" />
+      } @else {
+        <app-icon name="alert-triangle" [size]="16" />
+      }
+      {{ headline() }}
+    </p>
+    <div class="stat-grid">
+      <app-stat-card label="Needs an owner" [value]="tasks.unowned().length" icon="help-circle" tone="danger" link="/tasks" [queryParams]="{ filter: 'unowned' }" />
+      <app-stat-card label="Overdue" [value]="tasks.overdue().length" icon="alert-circle" tone="warning" link="/tasks" [queryParams]="{ filter: 'overdue' }" />
+      <app-stat-card label="Due today" [value]="tasks.dueToday().length" icon="clock" tone="primary" link="/tasks" [queryParams]="{ filter: 'today' }" />
+      <app-stat-card label="Done this week" [value]="tasks.completedThisWeek().length" icon="check" tone="success" link="/tasks" [queryParams]="{ filter: 'done' }" />
+    </div>
+  </app-hero>
+
+  <div class="page-grid">
+    <div class="stack gap-lg">
+      <!-- No Owner detection -->
+      <section>
+        <div class="section-head">
+          <h2><span class="dot danger"></span> Needs an owner</h2>
+          @if (tasks.unowned().length > 0) {
+            <button class="btn btn-soft btn-sm" (click)="tasks.autoAssignUnowned()">
+              <app-icon name="sparkles" [size]="15" /> Auto-assign all
+            </button>
+          }
+        </div>
+        @if (tasks.unownedImportant().length > 0) {
+          <div class="alert mb">
+            <app-icon name="alert-triangle" class="text-danger" />
+            <div class="small">
+              <div class="alert-title">These matter and nobody has taken them.</div>
+              Tasks here are high priority or due within 3 days. Claim one, assign it, or let Handled balance them by workload.
+            </div>
+          </div>
+        }
+        <div class="list">
+          @for (t of tasks.unownedImportant(); track t.id) {
+            <app-task-row [task]="t" [showOwner]="false" />
+          } @empty {
+            <app-empty-state icon="shield" title="Every important task has an owner" message="Nothing high-priority or due soon is unclaimed. New tasks without an owner will appear here." />
+          }
+          @if (tasks.unowned().length > tasks.unownedImportant().length) {
+            <a class="list-row clickable more" routerLink="/tasks" [queryParams]="{ filter: 'unowned' }">
+              <span class="grow small text-primary strong">
+                +{{ tasks.unowned().length - tasks.unownedImportant().length }} more unowned, lower-urgency task{{ tasks.unowned().length - tasks.unownedImportant().length === 1 ? '' : 's' }}
+              </span>
+              <app-icon name="chevron-right" [size]="18" class="text-primary" />
+            </a>
+          }
+        </div>
+      </section>
+
+      <!-- Today & overdue -->
+      <section>
+        <div class="section-head">
+          <h2>Today &amp; overdue</h2>
+          <a routerLink="/tasks" [queryParams]="{ filter: 'today' }">See all</a>
+        </div>
+        <div class="list">
+          @for (t of todayList(); track t.id) {
+            <app-task-row [task]="t" />
+          } @empty {
+            <app-empty-state icon="sun" title="Clear for today" message="Nothing is due or overdue. Enjoy it." />
+          }
+        </div>
+      </section>
+
+      <!-- Upcoming -->
+      <section>
+        <div class="section-head">
+          <h2>Coming up this week</h2>
+          <a routerLink="/calendar">Calendar</a>
+        </div>
+        <div class="list">
+          @for (t of upcoming(); track t.id) {
+            <app-task-row [task]="t" />
+          } @empty {
+            <app-empty-state icon="calendar" title="Nothing due in the next 7 days">
+              <button class="btn btn-soft btn-sm mt-sm" (click)="overlay.newTask()"><app-icon name="plus" [size]="15" /> Add a task</button>
+            </app-empty-state>
+          }
+        </div>
+      </section>
+    </div>
+
+    <div class="stack gap-lg">
+      <!-- Workload -->
+      <section class="card card-pad">
+        <div class="section-head">
+          <h2>Who's carrying what</h2>
+          <a routerLink="/insights">Insights</a>
+        </div>
+        <div class="stack">
+          @for (s of topLoad(); track s.member.id) {
+            <a class="load-row" [routerLink]="['/members', s.member.id]">
+              <app-avatar [name]="s.member.name" [colorIndex]="s.member.colorIndex" [size]="36" />
+              <div class="grow">
+                <div class="row between">
+                  <span class="strong small truncate">{{ s.member.name }}</span>
+                  <span class="tiny faint">{{ s.open }} open @if (s.overdue) {<span class="text-danger">· {{ s.overdue }} overdue</span>}</span>
+                </div>
+                <app-bar [value]="s.load / maxLoad()" [color]="'var(--c' + (s.member.colorIndex % 8) + ')'" [height]="6" />
+              </div>
+            </a>
+          } @empty {
+            <div class="faint small">Add members to see how work is shared.</div>
+          }
+        </div>
+        @if (insights.rebalance().length > 0) {
+          <a class="rebalance" routerLink="/insights">
+            <app-icon name="shuffle" [size]="16" />
+            <span class="grow">{{ insights.rebalance().length }} recurring task{{ insights.rebalance().length === 1 ? '' : 's' }} could be moved to even things out</span>
+            <app-icon name="chevron-right" [size]="16" />
+          </a>
+        }
+      </section>
+
+      <!-- Frequently missed -->
+      @if (insights.frequentlyMissed().length > 0) {
+        <section class="card card-pad">
+          <div class="section-head">
+            <h2><app-icon name="trending-down" class="text-warning" [size]="18" /> Keeps slipping</h2>
+            <a routerLink="/insights">Details</a>
+          </div>
+          <div class="stack">
+            @for (m of insights.frequentlyMissed().slice(0, 3); track m.task.seriesId) {
+              <a class="miss-row" [routerLink]="['/tasks', m.task.id]">
+                <div class="grow">
+                  <div class="strong small">{{ m.task.title }}</div>
+                  <div class="tiny faint">Late or missed {{ m.task.lateCount + m.task.missedCount }} of the last {{ m.task.completionCount + m.task.missedCount }} times</div>
+                </div>
+                <span class="badge badge-warning">{{ (m.rate * 100).toFixed(0) }}%</span>
+              </a>
+            }
+          </div>
+        </section>
+      }
+
+      <!-- Activity -->
+      <section class="card card-pad">
+        <div class="section-head">
+          <h2>Recent activity</h2>
+          <a routerLink="/activity">All</a>
+        </div>
+        <div class="stack">
+          @for (a of recentActivity(); track a.id) {
+            <div class="act">
+              <span class="act-icon"><app-icon [name]="icon(a)" [size]="14" /></span>
+              <div class="grow small">
+                <span class="strong">{{ a.actorId | memberName }}</span>
+                {{ text(a) }}
+                @if (a.taskId) {
+                  <a class="strong text-primary" [routerLink]="['/tasks', a.taskId]">{{ a.taskTitle }}</a>
+                }
+                <div class="tiny faint">{{ a.at | timeAgo }}</div>
+              </div>
+            </div>
+          } @empty {
+            <div class="faint small">No activity yet.</div>
+          }
+        </div>
+      </section>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,120 @@
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  font-size: 0.8rem;
+  font-weight: 600;
+  &.hot {
+    background: rgba(255, 92, 124, 0.35);
+    border-color: rgba(255, 92, 124, 0.5);
+  }
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  .btn-primary {
+    flex: 1 1 100%;
+  }
+  @media (min-width: 560px) {
+    .btn-primary {
+      flex: 1 1 auto;
+    }
+  }
+}
+
+.details {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 12px 10px;
+  margin: 0;
+  font-size: 0.9rem;
+  dt {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-3);
+    font-weight: 600;
+    font-size: 0.8125rem;
+  }
+  dd {
+    margin: 0;
+    min-width: 0;
+  }
+}
+
+.rot {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px 3px 3px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-2);
+  &.current {
+    background: var(--primary-soft);
+    color: var(--primary);
+  }
+}
+
+.notes {
+  white-space: pre-wrap;
+  color: var(--text-2);
+  font-size: 0.925rem;
+}
+
+.record {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  .rec {
+    background: var(--surface-2);
+    border-radius: 12px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    b {
+      font-size: 1.5rem;
+      font-weight: 800;
+    }
+    span {
+      font-size: 0.72rem;
+      color: var(--text-3);
+      font-weight: 600;
+    }
+  }
+}
+
+.hist,
+.act {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+}
+.hist:hover {
+  opacity: 0.85;
+}
+.act {
+  align-items: flex-start;
+}
+.act-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--text-2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}

@@ -1,0 +1,117 @@
+.wl {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  &:hover {
+    opacity: 0.85;
+  }
+}
+
+.move {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+
+.missed {
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+.tip {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+  font-size: 0.8125rem;
+  color: var(--primary);
+  font-weight: 500;
+}
+
+.chart {
+  display: flex;
+  gap: 8px;
+  height: 140px;
+  align-items: stretch;
+}
+.col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.bars {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.b {
+  width: 70%;
+  max-width: 28px;
+  min-height: 3px;
+  border-radius: 6px 6px 3px 3px;
+  background: var(--primary);
+  position: relative;
+  overflow: hidden;
+  transition: height 0.3s;
+}
+.late {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--warning);
+}
+.legend {
+  display: flex;
+  gap: 14px;
+  margin-top: 10px;
+  span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+}
+.sw {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.donut-wrap {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.donut {
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.hole {
+  width: 92px;
+  height: 92px;
+  border-radius: 50%;
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  b {
+    font-size: 1.5rem;
+    font-weight: 800;
+  }
+}
